@@ -368,34 +368,43 @@
 
 
             <!--
-                Each category groups its own transactions directly,
-                with the running total shown next to the category name.
-                Example:
-                  🍔 Lunch — Rs. 1,500
-                    20 Sep   Rs. 500
-                    18 Sep   Rs. 500
-                    15 Sep   Rs. 500
+                Flat, chronological (or sorted) list of transactions,
+                5 per page — like a banking app statement. JS renders
+                one row per transaction, e.g.:
+
+                <div class="entry-row">
+                    <span class="entry-date">20 Sep</span>
+                    <span class="entry-category">🍔 Lunch</span>
+                    <span class="entry-description">Lunch at cafe</span>
+                    <span class="entry-amount expense">-Rs. 500</span>
+                    <button class="delete-entry-btn" data-id="TRANSACTION_ID">Delete</button>
+                </div>
             -->
             <div id="transaction-log" class="transaction-log">
+                <!-- JavaScript renders the current page's rows here -->
+            </div>
 
-                <!-- JavaScript will render one block per category, e.g.: -->
-                <!--
-                <div class="category-block">
-                    <div class="category-block-header">
-                        <span class="category-icon">🍔</span>
-                        <span class="category-name">Lunch</span>
-                        <span class="category-total">Rs. 1,500</span>
-                    </div>
-                    <div class="category-entries">
-                        <div class="entry-row">
-                            <span class="entry-date">20 Sep</span>
-                            <span class="entry-description">Lunch at cafe</span>
-                            <span class="entry-amount">-500</span>
-                            <button class="delete-entry-btn" data-id="TRANSACTION_ID">Delete</button>
-                        </div>
-                    </div>
-                </div>
-                -->
+
+            <!-- Pagination Controls -->
+            <div class="pagination-controls">
+
+                <button type="button" id="page-first" class="page-btn" title="First page" aria-label="First page">
+                    ⏮
+                </button>
+
+                <button type="button" id="page-prev" class="page-btn" title="Previous page" aria-label="Previous page">
+                    ‹
+                </button>
+
+                <span id="page-indicator" class="page-indicator">Page 1 of 1</span>
+
+                <button type="button" id="page-next" class="page-btn" title="Next page" aria-label="Next page">
+                    ›
+                </button>
+
+                <button type="button" id="page-last" class="page-btn" title="Last page" aria-label="Last page">
+                    ⏭
+                </button>
 
             </div>
 

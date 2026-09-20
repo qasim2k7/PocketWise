@@ -313,6 +313,12 @@
         sortSelect: document.getElementById("sort-transactions"),
         transactionLog: document.getElementById("transaction-log"),
 
+        pageFirstBtn: document.getElementById("page-first"),
+        pagePrevBtn: document.getElementById("page-prev"),
+        pageNextBtn: document.getElementById("page-next"),
+        pageLastBtn: document.getElementById("page-last"),
+        pageIndicator: document.getElementById("page-indicator"),
+
         undoToast: document.getElementById("undo-toast"),
         undoToastMessage: document.getElementById("undo-toast-message"),
         undoDeleteBtn: document.getElementById("undo-delete-btn")
@@ -487,14 +493,22 @@
         });
     }
 
-    /** Build one transaction row (safe DOM nodes only). */
+    /** Build one transaction row (safe DOM nodes only). Includes the
+     *  category name/emoji inline since rows are no longer grouped. */
     function buildEntryRow(transaction) {
         const row = document.createElement("div");
         row.className = "entry-row";
 
+        const cat = getCategoryById(transaction.category);
+        const categoryLabel = cat ? ((cat.emoji ? cat.emoji + " " : "") + cat.name) : "🏷️ Other";
+
         const dateSpan = document.createElement("span");
         dateSpan.className = "entry-date";
         dateSpan.textContent = formatShortDate(transaction.date);
+
+        const categorySpan = document.createElement("span");
+        categorySpan.className = "entry-category";
+        categorySpan.textContent = categoryLabel;
 
         const descSpan = document.createElement("span");
         descSpan.className = "entry-description";
@@ -503,7 +517,7 @@
         const amountSpan = document.createElement("span");
         amountSpan.className = "entry-amount " + (transaction.type === "pocket-money" ? "income" : "expense");
         const sign = transaction.type === "pocket-money" ? "+" : "-";
-        amountSpan.textContent = sign + formatCurrency(transaction.amount).replace("Rs. ", "Rs. ");
+        amountSpan.textContent = sign + formatCurrency(transaction.amount);
 
         const deleteBtn = document.createElement("button");
         deleteBtn.type = "button";
@@ -513,6 +527,7 @@
         deleteBtn.addEventListener("click", () => handleDeleteTransaction(transaction.id));
 
         row.appendChild(dateSpan);
+        row.appendChild(categorySpan);
         row.appendChild(descSpan);
         row.appendChild(amountSpan);
         row.appendChild(deleteBtn);
@@ -520,16 +535,12 @@
         return row;
     }
 
-    /** Applies search / filter / sort, then groups by category and
-     *  renders the transaction log. */
-    function renderTransactionLog() {
-        if (!el.transactionLog) return;
+    const PAGE_SIZE = 5;
+    let currentPage = 1; // 1-indexed, like a real pagination UI
 
-        // NOTE: written without optional chaining (?.) intentionally —
-        // older mobile browsers / proxy browsers (Opera Mini, UC
-        // Browser, some carrier "data saver" modes) can fail to parse
-        // that syntax and abort the ENTIRE script, breaking the page.
-        // This plain-JS form works everywhere back to ES5.
+    /** Returns the current filtered + sorted transaction list, without
+     *  slicing to a page yet. Shared by the renderer and the pager. */
+    function getFilteredSortedTransactions() {
         const searchTerm = ((el.searchInput && el.searchInput.value) || "").trim().toLowerCase();
         const typeFilter = (el.filterTypeSelect && el.filterTypeSelect.value) || "all";
         const categoryFilter = (el.filterCategorySelect && el.filterCategorySelect.value) || "all";
@@ -566,70 +577,83 @@
             }
         });
 
-        // Group by category (in category-declaration order for stability)
-        const grouped = new Map();
-        filtered.forEach(t => {
-            if (!grouped.has(t.category)) grouped.set(t.category, []);
-            grouped.get(t.category).push(t);
-        });
+        return filtered;
+    }
+
+    /** Renders exactly one page (PAGE_SIZE transactions) as a flat,
+     *  banking-app-style list, and updates the pagination controls
+     *  to match. Called whenever transactions, filters, or the
+     *  current page change. */
+    function renderTransactionLog() {
+        if (!el.transactionLog) return;
+
+        const filtered = getFilteredSortedTransactions();
+        const totalPages = Math.max(Math.ceil(filtered.length / PAGE_SIZE), 1);
+
+        // Clamp current page in case transactions were deleted/filtered
+        // out from under it (e.g. deleting the last item on the last page).
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = (currentPage - 1) * PAGE_SIZE;
+        const pageItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
 
         el.transactionLog.innerHTML = ""; // safe: rebuilding with createElement below
+        pageItems.forEach(t => el.transactionLog.appendChild(buildEntryRow(t)));
 
-        if (grouped.size === 0) {
-            return; // CSS :empty selector shows the "no transactions" message
+        renderPaginationControls(totalPages, filtered.length);
+    }
+
+    /** Updates the page indicator text and enables/disables the
+     *  First/Prev/Next/Last arrow buttons appropriately. */
+    function renderPaginationControls(totalPages, totalItems) {
+        if (el.pageIndicator) {
+            el.pageIndicator.textContent = totalItems === 0
+                ? "No transactions"
+                : "Page " + currentPage + " of " + totalPages;
         }
 
-        // Render in the order categories were defined, then any
-        // orphaned category ids (e.g. a deleted category) last.
-        const orderedIds = [
-            ...categories.map(c => c.id).filter(id => grouped.has(id)),
-            ...[...grouped.keys()].filter(id => !categories.some(c => c.id === id))
-        ];
+        const atFirstPage = currentPage <= 1;
+        const atLastPage = currentPage >= totalPages;
 
-        orderedIds.forEach(categoryId => {
-            const entries = grouped.get(categoryId);
-            const cat = getCategoryById(categoryId);
-            const categoryName = cat ? cat.name : "Other";
-            const categoryEmoji = cat ? cat.emoji : "🏷️";
-
-            const total = entries.reduce((sum, t) => {
-                return sum + (t.type === "expense" ? t.amount : 0);
-            }, 0);
-
-            const block = document.createElement("div");
-            block.className = "category-block";
-
-            const header = document.createElement("div");
-            header.className = "category-block-header";
-
-            const titleSpan = document.createElement("span");
-            const iconSpan = document.createElement("span");
-            iconSpan.className = "category-icon";
-            iconSpan.textContent = categoryEmoji;
-            titleSpan.appendChild(iconSpan);
-            titleSpan.appendChild(document.createTextNode(categoryName));
-
-            const totalSpan = document.createElement("span");
-            totalSpan.className = "category-total";
-            totalSpan.textContent = formatCurrency(total);
-
-            header.appendChild(titleSpan);
-            header.appendChild(totalSpan);
-
-            const entriesContainer = document.createElement("div");
-            entriesContainer.className = "category-entries";
-            entries.forEach(t => entriesContainer.appendChild(buildEntryRow(t)));
-
-            // Collapsible: click header to toggle
-            header.addEventListener("click", () => {
-                entriesContainer.style.display =
-                    entriesContainer.style.display === "none" ? "" : "none";
-            });
-
-            block.appendChild(header);
-            block.appendChild(entriesContainer);
-            el.transactionLog.appendChild(block);
+        [el.pageFirstBtn, el.pagePrevBtn].forEach(btn => {
+            if (btn) btn.disabled = atFirstPage;
         });
+        [el.pageNextBtn, el.pageLastBtn].forEach(btn => {
+            if (btn) btn.disabled = atLastPage;
+        });
+    }
+
+    function goToFirstPage() {
+        currentPage = 1;
+        renderTransactionLog();
+    }
+
+    function goToPrevPage() {
+        currentPage = Math.max(currentPage - 1, 1);
+        renderTransactionLog();
+    }
+
+    function goToNextPage() {
+        const filtered = getFilteredSortedTransactions();
+        const totalPages = Math.max(Math.ceil(filtered.length / PAGE_SIZE), 1);
+        currentPage = Math.min(currentPage + 1, totalPages);
+        renderTransactionLog();
+    }
+
+    function goToLastPage() {
+        const filtered = getFilteredSortedTransactions();
+        const totalPages = Math.max(Math.ceil(filtered.length / PAGE_SIZE), 1);
+        currentPage = totalPages;
+        renderTransactionLog();
+    }
+
+    /** Whenever search/filter/sort changes, jump back to page 1 —
+     *  staying on e.g. "page 3" after a filter change could show an
+     *  empty or confusing page. */
+    function handleFilterChange() {
+        currentPage = 1;
+        renderTransactionLog();
     }
 
     function renderAll() {
@@ -680,6 +704,7 @@
 
         transactions.push(transaction);
         saveToStorage(STORAGE_KEYS.transactions, transactions);
+        currentPage = 1; // jump to page 1 so the new entry is visible right away
         renderAll();
         return true;
     }
@@ -923,17 +948,22 @@
         }
 
         if (el.searchInput) {
-            el.searchInput.addEventListener("input", debounce(renderTransactionLog, 200));
+            el.searchInput.addEventListener("input", debounce(handleFilterChange, 200));
         }
         if (el.filterTypeSelect) {
-            el.filterTypeSelect.addEventListener("change", renderTransactionLog);
+            el.filterTypeSelect.addEventListener("change", handleFilterChange);
         }
         if (el.filterCategorySelect) {
-            el.filterCategorySelect.addEventListener("change", renderTransactionLog);
+            el.filterCategorySelect.addEventListener("change", handleFilterChange);
         }
         if (el.sortSelect) {
-            el.sortSelect.addEventListener("change", renderTransactionLog);
+            el.sortSelect.addEventListener("change", handleFilterChange);
         }
+
+        if (el.pageFirstBtn) el.pageFirstBtn.addEventListener("click", goToFirstPage);
+        if (el.pagePrevBtn) el.pagePrevBtn.addEventListener("click", goToPrevPage);
+        if (el.pageNextBtn) el.pageNextBtn.addEventListener("click", goToNextPage);
+        if (el.pageLastBtn) el.pageLastBtn.addEventListener("click", goToLastPage);
     }
 
 

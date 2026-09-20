@@ -717,57 +717,29 @@ button {
 
 
 /* =========================================================
-   Transaction Log (grouped by category)
+   Transaction Log (flat, paginated — 5 per page)
    ========================================================= */
 
 .transaction-log {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-}
-
-.category-block {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-}
-
-.category-block-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 14px;
-    background: var(--color-bg);
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.category-block-header:hover {
-    background: var(--color-blue-light);
-}
-
-.category-icon {
-    margin-right: 8px;
-}
-
-.category-total {
-    color: var(--color-red-dark);
-    font-weight: 700;
-}
-
-.category-entries {
-    padding: 4px 14px;
+    gap: 2px;
 }
 
 .entry-row {
     display: grid;
-    grid-template-columns: 70px 1fr auto auto;
+    grid-template-columns: 60px 1fr 1fr auto auto;
     align-items: center;
     gap: 10px;
-    padding: 10px 0;
+    padding: 12px 10px;
     border-bottom: 1px solid var(--color-border);
     font-size: 0.88rem;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.entry-row:hover {
+    background: var(--color-bg);
 }
 
 .entry-row:last-child {
@@ -779,12 +751,24 @@ button {
     font-size: 0.8rem;
 }
 
+.entry-category {
+    color: var(--color-text);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .entry-description {
     color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .entry-amount {
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .entry-amount.income {
@@ -801,8 +785,8 @@ button {
     color: var(--color-red);
     font-size: 0.78rem;
     font-weight: 600;
-    padding: 6px 10px;      /* was 4px 8px — bigger tap target for mobile */
-    min-height: 32px;       /* fix: buttons were too small to tap reliably on phones */
+    padding: 6px 10px;
+    min-height: 32px;
     border-radius: var(--radius-sm);
 }
 
@@ -818,6 +802,54 @@ button {
     color: var(--color-text-muted);
     padding: 32px 0;
     font-size: 0.9rem;
+}
+
+
+/* =========================================================
+   Pagination Controls (banking-app style)
+   ========================================================= */
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+}
+
+.page-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
+    color: var(--color-blue-dark);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.page-btn:hover:not(:disabled) {
+    background: var(--color-blue);
+    color: var(--color-white);
+    border-color: var(--color-blue);
+}
+
+.page-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    min-width: 110px;
+    text-align: center;
 }
 
 
@@ -881,13 +913,28 @@ button {
     }
 
     .entry-row {
-        grid-template-columns: 60px 1fr auto;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "date amount"
+            "category category"
+            "description description"
+            "delete delete";
+        row-gap: 4px;
         font-size: 0.8rem;
     }
 
+    .entry-date { grid-area: date; }
+    .entry-amount { grid-area: amount; justify-self: end; }
+    .entry-category { grid-area: category; }
+    .entry-description { grid-area: description; }
+
     .entry-row .delete-entry-btn {
-        grid-column: 1 / -1;
+        grid-area: delete;
         justify-self: end;
+    }
+
+    .pagination-controls {
+        flex-wrap: wrap;
     }
 
     .history-controls input,

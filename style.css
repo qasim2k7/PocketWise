@@ -440,34 +440,80 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
+    max-height: 280px;
+    overflow-y: auto;
 }
 
 .quick-add-edit-row {
     display: grid;
-    grid-template-columns: 32px 1fr 90px;
+    grid-template-columns: 1.2fr 1.4fr 90px 32px;
     align-items: center;
     gap: 8px;
 }
 
-.qa-edit-emoji {
-    font-size: 1.3rem;
-    text-align: center;
-}
-
+.quick-add-edit-row select,
 .quick-add-edit-row input {
     padding: 8px 10px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-bg);
     color: var(--color-text);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     width: 100%;
 }
 
+.quick-add-edit-row select:focus,
 .quick-add-edit-row input:focus {
     outline: none;
     border-color: var(--color-blue);
+}
+
+.remove-shortcut-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: none;
+    color: var(--color-danger);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.remove-shortcut-btn:hover {
+    background: var(--color-danger-light);
+    border-color: var(--color-danger);
+}
+
+.add-shortcut-btn {
+    width: 100%;
+    background: none;
+    border: 1px dashed var(--color-border);
+    color: var(--color-lavender);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    transition: var(--transition);
+}
+
+.add-shortcut-btn:hover {
+    background: var(--color-blue-light);
+    border-color: var(--color-blue);
+}
+
+/* Empty state inside the editor */
+.quick-add-edit-rows:empty::after {
+    content: "No shortcuts yet — add one below.";
+    display: block;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    padding: 12px 0;
 }
 
 
@@ -1102,6 +1148,20 @@ button {
     .pagination-controls {
         flex-wrap: wrap;
     }
+
+    .quick-add-edit-row {
+        grid-template-columns: 1fr 32px;
+        grid-template-areas:
+            "category remove"
+            "description description"
+            "amount amount";
+        row-gap: 6px;
+    }
+
+    .quick-add-edit-row select[id^="qa-edit-category"] { grid-area: category; }
+    .quick-add-edit-row input[id^="qa-edit-desc"] { grid-area: description; }
+    .quick-add-edit-row input[id^="qa-edit-amount"] { grid-area: amount; }
+    .quick-add-edit-row .remove-shortcut-btn { grid-area: remove; justify-self: end; }
 
     .history-controls input,
     .history-controls select {

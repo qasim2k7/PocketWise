@@ -96,29 +96,13 @@
 
                 <h2>Add Transaction</h2>
 
-                <!-- Quick-Add Buttons -->
-                <div class="quick-add-buttons">
-
-                    <button type="button" id="qa-btn-1" class="quick-add-btn" data-category="lunch" data-description="Lunch" data-amount="500">
-                        <span class="qa-emoji">🍔</span> <span class="qa-label">Lunch</span>
-                    </button>
-
-                    <button type="button" id="qa-btn-2" class="quick-add-btn" data-category="tea" data-description="Tea" data-amount="50">
-                        <span class="qa-emoji">☕</span> <span class="qa-label">Tea</span>
-                    </button>
-
-                    <button type="button" id="qa-btn-3" class="quick-add-btn" data-category="printout" data-description="Printout" data-amount="20">
-                        <span class="qa-emoji">🖨️</span> <span class="qa-label">Printout</span>
-                    </button>
-
-                    <button type="button" id="qa-btn-4" class="quick-add-btn" data-category="rickshaw" data-description="Rickshaw" data-amount="100">
-                        <span class="qa-emoji">🛺</span> <span class="qa-label">Rickshaw</span>
-                    </button>
-
-                    <button type="button" id="edit-quick-add" class="quick-add-btn edit-quick-add-btn">
-                        ✏️ Edit Quick-Add
-                    </button>
-
+                <!-- Quick-Add Buttons — rendered dynamically by JS from
+                     pocketwise_quickadd in localStorage. Each button's
+                     category, description, and amount are fully
+                     user-editable via the "Edit Quick-Add" popup. -->
+                <div class="quick-add-buttons" id="quick-add-buttons">
+                    <!-- JS renders one <button class="quick-add-btn"> per
+                         configured shortcut here, plus the Edit button -->
                 </div>
 
                 <form id="transaction-form">
@@ -443,35 +427,21 @@
         <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="quick-add-edit-title">
 
             <h3 id="quick-add-edit-title" class="modal-title">Edit Quick-Add Buttons</h3>
-            <p class="modal-message">Customize the description and amount for each shortcut.</p>
+            <p class="modal-message">
+                Pick a category, description, and amount for each shortcut.
+                Add or remove as many as you like.
+            </p>
 
-            <div class="quick-add-edit-rows">
-
-                <div class="quick-add-edit-row">
-                    <span class="qa-edit-emoji">🍔</span>
-                    <input type="text" id="qa-edit-desc-1" placeholder="Description" maxlength="24">
-                    <input type="number" id="qa-edit-amount-1" placeholder="Amount" min="1">
-                </div>
-
-                <div class="quick-add-edit-row">
-                    <span class="qa-edit-emoji">☕</span>
-                    <input type="text" id="qa-edit-desc-2" placeholder="Description" maxlength="24">
-                    <input type="number" id="qa-edit-amount-2" placeholder="Amount" min="1">
-                </div>
-
-                <div class="quick-add-edit-row">
-                    <span class="qa-edit-emoji">🖨️</span>
-                    <input type="text" id="qa-edit-desc-3" placeholder="Description" maxlength="24">
-                    <input type="number" id="qa-edit-amount-3" placeholder="Amount" min="1">
-                </div>
-
-                <div class="quick-add-edit-row">
-                    <span class="qa-edit-emoji">🛺</span>
-                    <input type="text" id="qa-edit-desc-4" placeholder="Description" maxlength="24">
-                    <input type="number" id="qa-edit-amount-4" placeholder="Amount" min="1">
-                </div>
-
+            <!-- JS renders one .quick-add-edit-row per shortcut here,
+                 each with a category <select> (from your existing
+                 categories), description input, amount input, and a
+                 delete (✕) button. -->
+            <div id="quick-add-edit-rows" class="quick-add-edit-rows">
             </div>
+
+            <button type="button" id="quick-add-edit-add-row" class="add-shortcut-btn">
+                + Add Shortcut
+            </button>
 
             <div class="modal-actions">
                 <button type="button" id="quick-add-edit-cancel" class="modal-btn modal-btn-cancel">Cancel</button>

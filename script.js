@@ -294,8 +294,7 @@
         descriptionInput: document.getElementById("description"),
         dateInput: document.getElementById("date"),
 
-        quickAddButtons: document.querySelectorAll(".quick-add-btn[data-category]"),
-        editQuickAddBtn: document.getElementById("edit-quick-add"),
+        quickAddContainer: document.getElementById("quick-add-buttons"),
 
         categoryList: document.getElementById("category-list"),
         newCategoryInput: document.getElementById("new-category"),
@@ -332,6 +331,7 @@
         confirmConfirmBtn: document.getElementById("confirm-modal-confirm"),
 
         quickAddEditOverlay: document.getElementById("quick-add-edit-overlay"),
+        quickAddEditAddRowBtn: document.getElementById("quick-add-edit-add-row"),
         quickAddEditCancelBtn: document.getElementById("quick-add-edit-cancel"),
         quickAddEditSaveBtn: document.getElementById("quick-add-edit-save")
     };
@@ -673,6 +673,7 @@
         renderCircle();
         renderCategoryOptions();
         renderCategoryManagerList();
+        renderQuickAddButtons();
         renderTransactionLog();
     }
 
@@ -878,24 +879,99 @@
         renderAll();
     }
 
-    function handleQuickAdd(button) {
-        const categoryId = button.dataset.category;
-        const description = button.dataset.description || "";
-        const amount = button.dataset.amount || "0";
+    /* =====================================================
+       QUICK-ADD BUTTONS (dynamic list, stored as an array)
+       Each shortcut is { id, categoryId, description, amount }.
+       Fully user-managed: add any number, delete any, and pick
+       from whichever categories currently exist. Persisted to
+       localStorage. The emoji shown on each button is simply the
+       emoji of its chosen category, so it always stays in sync
+       even if that category's emoji is changed elsewhere.
+       ===================================================== */
 
-        // If a matching category doesn't exist yet (e.g. it was
-        // deleted), fall back to the first available category
-        // rather than silently failing.
-        const categoryToUse = getCategoryById(categoryId) ? categoryId : (categories[0] && categories[0].id);
+    const DEFAULT_QUICK_ADD = [
+        { id: "qa-1", categoryId: "lunch", description: "Lunch", amount: 500 },
+        { id: "qa-2", categoryId: "tea", description: "Tea", amount: 50 },
+        { id: "qa-3", categoryId: "printout", description: "Printout", amount: 20 },
+        { id: "qa-4", categoryId: "rickshaw", description: "Rickshaw", amount: 100 }
+    ];
+
+    function isValidQuickAddArray(arr) {
+        return Array.isArray(arr) && arr.every(item =>
+            item && typeof item === "object" &&
+            typeof item.id === "string" &&
+            typeof item.categoryId === "string" &&
+            typeof item.description === "string" &&
+            typeof item.amount === "number" &&
+            Number.isFinite(item.amount) &&
+            item.amount >= LIMITS.minAmount &&
+            item.amount <= LIMITS.maxAmount
+        );
+    }
+
+    let quickAddItems = loadFromStorage(STORAGE_KEYS.quickAdd, isValidQuickAddArray, DEFAULT_QUICK_ADD.slice());
+
+    /** Renders the actual quick-add buttons (plus the Edit button)
+     *  into #quick-add-buttons from the current quickAddItems array.
+     *  Skips any shortcut whose category was since deleted, rather
+     *  than crashing or showing a broken button. */
+    function renderQuickAddButtons() {
+        const container = document.getElementById("quick-add-buttons");
+        if (!container) return;
+
+        container.innerHTML = ""; // safe: rebuilding with createElement below
+
+        quickAddItems.forEach(item => {
+            const cat = getCategoryById(item.categoryId);
+            if (!cat) return; // category was deleted since — just hide this shortcut
+
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "quick-add-btn";
+            btn.dataset.id = item.id;
+
+            const emojiSpan = document.createElement("span");
+            emojiSpan.className = "qa-emoji";
+            emojiSpan.textContent = cat.emoji || "🏷️";
+
+            const labelSpan = document.createElement("span");
+            labelSpan.className = "qa-label";
+            labelSpan.textContent = item.description;
+
+            btn.appendChild(emojiSpan);
+            btn.appendChild(document.createTextNode(" "));
+            btn.appendChild(labelSpan);
+
+            btn.addEventListener("click", () => handleQuickAdd(item.id));
+            container.appendChild(btn);
+        });
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.id = "edit-quick-add";
+        editBtn.className = "quick-add-btn edit-quick-add-btn";
+        editBtn.textContent = "✏️ Edit Quick-Add";
+        editBtn.addEventListener("click", openQuickAddEditor);
+        container.appendChild(editBtn);
+    }
+
+    function handleQuickAdd(itemId) {
+        const item = quickAddItems.find(i => i.id === itemId);
+        if (!item) return;
+
+        // If the category was deleted since this button was last
+        // rendered, fall back to the first available category rather
+        // than silently failing.
+        const categoryToUse = getCategoryById(item.categoryId) ? item.categoryId : (categories[0] && categories[0].id);
         if (!categoryToUse) return;
 
         const today = new Date().toISOString().slice(0, 10);
 
         addTransaction({
             type: "expense",
-            amount: amount,
+            amount: item.amount,
             category: categoryToUse,
-            description: description || "Quick add",
+            description: item.description || "Quick add",
             date: today
         });
     }
@@ -937,101 +1013,149 @@
 
     /* =====================================================
        QUICK-ADD EDITOR
-       Lets the user customize the description + amount of each
-       of the 4 quick-add buttons. Category and emoji stay fixed
-       per slot (keeps the UI simple); only the two fields that
-       matter day-to-day (what it's called, how much) are editable.
-       Persisted to localStorage so edits survive a reload.
+       A popup where the user can add, edit, or delete any number
+       of quick-add shortcuts, each with its own category (picked
+       from the categories that currently exist), description, and
+       amount. Changes only take effect after clicking Save.
        ===================================================== */
 
-    const QUICK_ADD_SLOT_IDS = ["qa-btn-1", "qa-btn-2", "qa-btn-3", "qa-btn-4"];
+    // Working copy edited inside the modal — kept separate from
+    // quickAddItems so Cancel can discard changes cleanly.
+    let editingQuickAddItems = [];
 
-    function isValidQuickAddConfig(cfg) {
-        return (
-            cfg && typeof cfg === "object" &&
-            QUICK_ADD_SLOT_IDS.every(id => {
-                const entry = cfg[id];
-                return entry && typeof entry === "object" &&
-                    typeof entry.description === "string" &&
-                    typeof entry.amount === "number" &&
-                    Number.isFinite(entry.amount) &&
-                    entry.amount >= LIMITS.minAmount &&
-                    entry.amount <= LIMITS.maxAmount;
-            })
-        );
+    /** Builds one editable row for the Quick-Add editor: a category
+     *  <select> populated from the live `categories` state, a
+     *  description input, an amount input, and a remove (✕) button. */
+    function buildQuickAddEditRow(item) {
+        const row = document.createElement("div");
+        row.className = "quick-add-edit-row";
+        row.dataset.rowId = item.id;
+
+        const categorySelect = document.createElement("select");
+        categorySelect.id = "qa-edit-category-" + item.id;
+        categories.forEach(cat => {
+            const option = document.createElement("option");
+            option.value = cat.id;
+            option.textContent = (cat.emoji ? cat.emoji + " " : "") + cat.name;
+            categorySelect.appendChild(option);
+        });
+        if (categories.some(c => c.id === item.categoryId)) {
+            categorySelect.value = item.categoryId;
+        }
+
+        const descInput = document.createElement("input");
+        descInput.type = "text";
+        descInput.id = "qa-edit-desc-" + item.id;
+        descInput.placeholder = "Description";
+        descInput.maxLength = LIMITS.descriptionMaxLength;
+        descInput.value = item.description;
+
+        const amountInput = document.createElement("input");
+        amountInput.type = "number";
+        amountInput.id = "qa-edit-amount-" + item.id;
+        amountInput.placeholder = "Amount";
+        amountInput.min = String(LIMITS.minAmount);
+        amountInput.value = item.amount;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "remove-shortcut-btn";
+        removeBtn.title = "Remove this shortcut";
+        removeBtn.setAttribute("aria-label", "Remove this shortcut");
+        removeBtn.textContent = "✕";
+        removeBtn.addEventListener("click", () => {
+            editingQuickAddItems = editingQuickAddItems.filter(i => i.id !== item.id);
+            renderQuickAddEditRows();
+        });
+
+        row.appendChild(categorySelect);
+        row.appendChild(descInput);
+        row.appendChild(amountInput);
+        row.appendChild(removeBtn);
+
+        return row;
     }
 
-    let quickAddConfig = loadFromStorage(STORAGE_KEYS.quickAdd, isValidQuickAddConfig, null);
-
-    /** Apply the current quickAddConfig (or the button's original
-     *  HTML defaults, if no override is saved yet) onto the actual
-     *  DOM buttons — updates both the data-* attributes used by
-     *  handleQuickAdd() and the visible label text. */
-    function applyQuickAddConfig() {
-        QUICK_ADD_SLOT_IDS.forEach(id => {
-            const btn = document.getElementById(id);
-            if (!btn) return;
-
-            const override = quickAddConfig && quickAddConfig[id];
-            const description = override ? override.description : btn.dataset.description;
-            const amount = override ? override.amount : btn.dataset.amount;
-
-            btn.dataset.description = description;
-            btn.dataset.amount = String(amount);
-
-            const labelSpan = btn.querySelector(".qa-label");
-            if (labelSpan) labelSpan.textContent = description;
-        });
+    function renderQuickAddEditRows() {
+        const container = document.getElementById("quick-add-edit-rows");
+        if (!container) return;
+        container.innerHTML = ""; // safe: rebuilding with createElement below
+        editingQuickAddItems.forEach(item => container.appendChild(buildQuickAddEditRow(item)));
     }
 
     function openQuickAddEditor() {
         if (!el.quickAddEditOverlay) return;
+        if (categories.length === 0) {
+            alert("Add at least one category before creating quick-add shortcuts.");
+            return;
+        }
 
-        QUICK_ADD_SLOT_IDS.forEach((id, index) => {
-            const btn = document.getElementById(id);
-            const descInput = document.getElementById("qa-edit-desc-" + (index + 1));
-            const amountInput = document.getElementById("qa-edit-amount-" + (index + 1));
-            if (!btn || !descInput || !amountInput) return;
-
-            descInput.value = btn.dataset.description || "";
-            amountInput.value = btn.dataset.amount || "";
-        });
-
+        // Deep-copy so edits in the modal don't touch live data until Save.
+        // Uses Object.assign (not {...spread}) for maximum old-browser
+        // compatibility, consistent with the rest of this file.
+        editingQuickAddItems = quickAddItems.map(item => Object.assign({}, item));
+        renderQuickAddEditRows();
         el.quickAddEditOverlay.classList.remove("hidden");
     }
 
     function closeQuickAddEditor() {
         if (!el.quickAddEditOverlay) return;
         el.quickAddEditOverlay.classList.add("hidden");
+        editingQuickAddItems = [];
+    }
+
+    function handleAddQuickAddRow() {
+        if (editingQuickAddItems.length >= LIMITS.maxCategories) {
+            alert("You've reached the maximum number of quick-add shortcuts.");
+            return;
+        }
+        const defaultCategoryId = categories[0] ? categories[0].id : "";
+        editingQuickAddItems.push({
+            id: generateId(),
+            categoryId: defaultCategoryId,
+            description: "",
+            amount: LIMITS.minAmount
+        });
+        renderQuickAddEditRows();
     }
 
     function saveQuickAddEditor() {
-        const newConfig = {};
+        const newItems = [];
 
-        for (let i = 0; i < QUICK_ADD_SLOT_IDS.length; i++) {
-            const id = QUICK_ADD_SLOT_IDS[i];
-            const descInput = document.getElementById("qa-edit-desc-" + (i + 1));
-            const amountInput = document.getElementById("qa-edit-amount-" + (i + 1));
-            if (!descInput || !amountInput) continue;
+        for (const item of editingQuickAddItems) {
+            const categorySelect = document.getElementById("qa-edit-category-" + item.id);
+            const descInput = document.getElementById("qa-edit-desc-" + item.id);
+            const amountInput = document.getElementById("qa-edit-amount-" + item.id);
+            if (!categorySelect || !descInput || !amountInput) continue;
 
+            const categoryId = categorySelect.value;
             const safeDescription = sanitizeText(descInput.value, LIMITS.descriptionMaxLength);
             const safeAmount = parseSafeAmount(amountInput.value);
 
+            if (!getCategoryById(categoryId)) {
+                alert("Please choose a valid category for every shortcut.");
+                return;
+            }
             if (!safeDescription) {
-                alert("Please fill in a description for every quick-add button.");
+                alert("Please fill in a description for every shortcut.");
                 return;
             }
             if (safeAmount === null) {
-                alert("Please enter a valid amount (" + LIMITS.minAmount + "–" + LIMITS.maxAmount + ") for every quick-add button.");
+                alert("Please enter a valid amount (" + LIMITS.minAmount + "–" + LIMITS.maxAmount + ") for every shortcut.");
                 return;
             }
 
-            newConfig[id] = { description: safeDescription, amount: safeAmount };
+            newItems.push({
+                id: item.id,
+                categoryId: categoryId,
+                description: safeDescription,
+                amount: safeAmount
+            });
         }
 
-        quickAddConfig = newConfig;
-        saveToStorage(STORAGE_KEYS.quickAdd, quickAddConfig);
-        applyQuickAddConfig();
+        quickAddItems = newItems;
+        saveToStorage(STORAGE_KEYS.quickAdd, quickAddItems);
+        renderQuickAddButtons();
         closeQuickAddEditor();
     }
 
@@ -1073,9 +1197,9 @@
             });
         }
 
-        el.quickAddButtons.forEach(btn => {
-            btn.addEventListener("click", () => handleQuickAdd(btn));
-        });
+        // Quick-add buttons are rendered dynamically (renderQuickAddButtons),
+        // and each one gets its click listener attached at render time —
+        // nothing to bind here.
 
         if (el.addCategoryBtn) {
             el.addCategoryBtn.addEventListener("click", handleAddCategory);
@@ -1111,9 +1235,10 @@
         if (el.pageNextBtn) el.pageNextBtn.addEventListener("click", goToNextPage);
         if (el.pageLastBtn) el.pageLastBtn.addEventListener("click", goToLastPage);
 
-        // Edit Quick-Add
-        if (el.editQuickAddBtn) {
-            el.editQuickAddBtn.addEventListener("click", openQuickAddEditor);
+        // Edit Quick-Add (the Edit button itself is rendered dynamically
+        // inside renderQuickAddButtons and gets its listener there)
+        if (el.quickAddEditAddRowBtn) {
+            el.quickAddEditAddRowBtn.addEventListener("click", handleAddQuickAddRow);
         }
         if (el.quickAddEditCancelBtn) {
             el.quickAddEditCancelBtn.addEventListener("click", closeQuickAddEditor);
@@ -1157,7 +1282,6 @@
             saveToStorage(STORAGE_KEYS.budget, budget);
         }
 
-        applyQuickAddConfig();
         initFormDefaults();
         bindEvents();
         renderAll();

@@ -525,10 +525,15 @@
     function renderTransactionLog() {
         if (!el.transactionLog) return;
 
-        const searchTerm = (el.searchInput?.value || "").trim().toLowerCase();
-        const typeFilter = el.filterTypeSelect?.value || "all";
-        const categoryFilter = el.filterCategorySelect?.value || "all";
-        const sortMode = el.sortSelect?.value || "newest";
+        // NOTE: written without optional chaining (?.) intentionally —
+        // older mobile browsers / proxy browsers (Opera Mini, UC
+        // Browser, some carrier "data saver" modes) can fail to parse
+        // that syntax and abort the ENTIRE script, breaking the page.
+        // This plain-JS form works everywhere back to ES5.
+        const searchTerm = ((el.searchInput && el.searchInput.value) || "").trim().toLowerCase();
+        const typeFilter = (el.filterTypeSelect && el.filterTypeSelect.value) || "all";
+        const categoryFilter = (el.filterCategorySelect && el.filterCategorySelect.value) || "all";
+        const sortMode = (el.sortSelect && el.sortSelect.value) || "newest";
 
         let filtered = transactions.filter(t => {
             if (typeFilter !== "all" && t.type !== typeFilter) return false;
@@ -1096,8 +1101,11 @@ const EMOJI_DATA = {
 };
 
 /* Flat list (all categories combined) — used when the user searches
-   or wants to browse everything at once. */
-const EMOJI_ALL = Object.values(EMOJI_DATA).flat();
+   or wants to browse everything at once.
+   NOTE: written without Array.prototype.flat() intentionally — some
+   older mobile browsers / WebViews don't support it. concat() with
+   apply() works everywhere, back to very old JS engines. */
+const EMOJI_ALL = [].concat.apply([], Object.values(EMOJI_DATA));
 
 
 /* =========================================================

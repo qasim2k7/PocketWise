@@ -190,10 +190,15 @@ body {
     justify-content: center;
     position: relative;
 
-    /* Default: mostly saving (blue), JS updates this conic-gradient
-       dynamically e.g.:
-       background: conic-gradient(var(--color-red) 0% 40%, var(--color-blue) 40% 100%);
-    */
+    /* Fallback for browsers that don't support conic-gradient
+       (some older mobile browsers), layered so each rule only
+       overrides on browsers that understand it — unsupported
+       browsers just keep the earliest one they can parse:
+       1) plain hex color (works even without CSS variable support)
+       2) CSS variable solid color (works if variables are supported)
+       3) conic-gradient (works on modern browsers, final result) */
+    background: #1d4ed8;
+    background: var(--color-blue);
     background: conic-gradient(var(--color-red) 0% 0%, var(--color-blue) 0% 100%);
     transition: background 0.6s ease;
     box-shadow: inset 0 0 0 10px var(--color-white), var(--shadow);
@@ -796,7 +801,8 @@ button {
     color: var(--color-red);
     font-size: 0.78rem;
     font-weight: 600;
-    padding: 4px 8px;
+    padding: 6px 10px;      /* was 4px 8px — bigger tap target for mobile */
+    min-height: 32px;       /* fix: buttons were too small to tap reliably on phones */
     border-radius: var(--radius-sm);
 }
 

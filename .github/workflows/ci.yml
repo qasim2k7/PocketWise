@@ -1,0 +1,42 @@
+name: PocketWise CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          echo "Checking required project files..."
+          test -f index.html || (echo "Missing index.html" && exit 1)
+          test -f style.css || (echo "Missing style.css" && exit 1)
+          test -f script.js || (echo "Missing script.js" && exit 1)
+          echo "All required files found."
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate JavaScript syntax
+        run: |
+          echo "Checking script.js for syntax errors..."
+          node --check script.js
+          echo "script.js syntax OK."
+
+      - name: Install HTML validator
+        run: npm install -g htmlhint
+
+      - name: Validate HTML
+        run: |
+          echo "Checking index.html for structural issues..."
+          htmlhint index.html

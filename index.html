@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--
+        Security hardening: Content-Security-Policy meta tag.
+        Restricts the page to only load scripts/styles from itself
+        (no inline <script>, no external CDNs, no eval). This blocks
+        most script-injection (XSS) payloads even if one slips into
+        the DOM somehow.
+    -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self';">
+
+    <title>PocketWise - Budget Manager</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <h1>PocketWise</h1>
+        <p>Budget & Pocket Money Manager</p>
+    </header>
+
+
+    <!-- Low Balance Warning Banner -->
+    <div id="low-balance-banner" class="low-balance-banner hidden">
+        ⚠️ Balance is running low — <span id="low-balance-amount">Rs. 0</span> remaining
+    </div>
+
+
+    <!-- Dashboard -->
+    <main class="container">
+
+        <section class="dashboard">
+
+            <div class="summary-card">
+                <h3>Total Balance</h3>
+                <p id="balance">Rs. 0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Total Spent</h3>
+                <p id="total-expenses">Rs. 0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Days Left in Month</h3>
+                <p id="days-left">0 days</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Safe to Spend / Day</h3>
+                <p id="daily-safe-spend">Rs. 0</p>
+            </div>
+
+        </section>
+
+
+        <!-- Spending / Saving Circle -->
+        <section class="spending-circle-section">
+
+            <h2>Spending Overview</h2>
+
+            <div class="circle-container">
+
+                <div id="spending-circle" class="spending-circle">
+                    <div class="circle-inner">
+                        <span id="circle-percentage">0%</span>
+                        <span id="circle-label">Saving</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="circle-stats">
+                <p>Spent: <span id="circle-stat-spent">Rs. 0</span></p>
+                <p>Budget: <span id="circle-stat-budget">Rs. 0</span></p>
+                <p>Remaining: <span id="circle-stat-remaining">Rs. 0</span></p>
+            </div>
+
+        </section>
+
+
+        <!-- Main Content -->
+        <section class="main-content">
+
+            <!-- Add Transaction -->
+            <div class="transaction-form">
+
+                <h2>Add Transaction</h2>
+
+                <!-- Quick-Add Buttons -->
+                <div class="quick-add-buttons">
+
+                    <button type="button" class="quick-add-btn" data-category="lunch" data-description="Lunch" data-amount="500">
+                        🍔 Lunch
+                    </button>
+
+                    <button type="button" class="quick-add-btn" data-category="tea" data-description="Tea" data-amount="50">
+                        ☕ Tea
+                    </button>
+
+                    <button type="button" class="quick-add-btn" data-category="printout" data-description="Printout" data-amount="20">
+                        🖨️ Printout
+                    </button>
+
+                    <button type="button" class="quick-add-btn" data-category="rickshaw" data-description="Rickshaw" data-amount="100">
+                        🛺 Rickshaw
+                    </button>
+
+                    <button type="button" id="edit-quick-add" class="quick-add-btn edit-quick-add-btn">
+                        ✏️ Edit Quick-Add
+                    </button>
+
+                </div>
+
+                <form id="transaction-form">
+
+                    <div class="form-group">
+                        <label for="type">Transaction Type</label>
+
+                        <select id="type" required>
+                            <option value="expense">Expense</option>
+                            <option value="pocket-money">Pocket Money</option>
+                        </select>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="amount">Amount</label>
+
+                        <input
+                            type="number"
+                            id="amount"
+                            placeholder="Enter amount"
+                            min="1"
+                            required
+                        >
+                    </div>
+
+
+                    <div class="form-group" id="category-group">
+                        <label for="category">Category</label>
+
+                        <select id="category" required>
+                            <option value="grocery">🛒 Grocery</option>
+                            <option value="lunch">🍔 Lunch</option>
+                            <option value="dinner">🍽️ Dinner</option>
+                            <option value="laundry">🧺 Laundry</option>
+                            <option value="petrol">⛽ Petrol</option>
+                            <option value="hostel-rent">🏠 Hostel Rent</option>
+                            <option value="shopping">🛍️ Shopping</option>
+                            <option value="bike-repair">🔧 Bike Repair</option>
+                            <option value="gym">💪 Gym</option>
+                            <option value="tea">☕ Tea</option>
+                            <option value="printout">🖨️ Printout</option>
+                            <option value="rickshaw">🛺 Rickshaw</option>
+                        </select>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+
+                        <input
+                            type="text"
+                            id="description"
+                            placeholder="e.g. Lunch"
+                            required
+                        >
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+
+                        <input
+                            type="date"
+                            id="date"
+                            required
+                        >
+                    </div>
+
+
+                    <button type="submit">
+                        Add Transaction
+                    </button>
+
+                </form>
+
+                <div class="category-manager">
+
+                    <h3>Categories</h3>
+
+                    <ul id="category-list">
+                        <li>🛒 Grocery <button class="delete-category-btn" data-category="grocery">Delete</button></li>
+                        <li>🍔 Lunch <button class="delete-category-btn" data-category="lunch">Delete</button></li>
+                        <li>🍽️ Dinner <button class="delete-category-btn" data-category="dinner">Delete</button></li>
+                        <li>🧺 Laundry <button class="delete-category-btn" data-category="laundry">Delete</button></li>
+                        <li>⛽ Petrol <button class="delete-category-btn" data-category="petrol">Delete</button></li>
+                        <li>🏠 Hostel Rent <button class="delete-category-btn" data-category="hostel-rent">Delete</button></li>
+                        <li>🛍️ Shopping <button class="delete-category-btn" data-category="shopping">Delete</button></li>
+                        <li>🔧 Bike Repair <button class="delete-category-btn" data-category="bike-repair">Delete</button></li>
+                        <li>💪 Gym <button class="delete-category-btn" data-category="gym">Delete</button></li>
+                        <li>☕ Tea <button class="delete-category-btn" data-category="tea">Delete</button></li>
+                        <li>🖨️ Printout <button class="delete-category-btn" data-category="printout">Delete</button></li>
+                        <li>🛺 Rickshaw <button class="delete-category-btn" data-category="rickshaw">Delete</button></li>
+                    </ul>
+
+                    <div class="add-category-form">
+
+                        <input type="text" id="new-category" placeholder="New category name">
+
+                        <!-- Optional emoji picker trigger -->
+                        <div class="emoji-picker-wrapper">
+
+                            <button type="button" id="emoji-picker-trigger" class="emoji-picker-trigger">
+                                <span id="selected-emoji-preview">🙂</span>
+                            </button>
+
+                            <!-- Hidden input holds the chosen emoji (empty if user skips it) -->
+                            <input type="hidden" id="selected-emoji-value" value="">
+
+                            <!-- Emoji Picker Popover -->
+                            <div id="emoji-picker-popover" class="emoji-picker-popover hidden">
+
+                                <div class="emoji-picker-header">
+                                    <input
+                                        type="text"
+                                        id="emoji-search"
+                                        class="emoji-search-input"
+                                        placeholder="Search emoji..."
+                                    >
+                                    <button type="button" id="emoji-clear-btn" class="emoji-clear-btn" title="Use no emoji">
+                                        None
+                                    </button>
+                                </div>
+
+                                <!-- Category Tabs -->
+                                <div class="emoji-tabs" id="emoji-tabs">
+                                    <button type="button" class="emoji-tab active" data-tab="smileys" title="Smileys & People">😀</button>
+                                    <button type="button" class="emoji-tab" data-tab="animals" title="Animals & Nature">🐶</button>
+                                    <button type="button" class="emoji-tab" data-tab="food" title="Food & Drink">🍔</button>
+                                    <button type="button" class="emoji-tab" data-tab="activity" title="Activity">⚽</button>
+                                    <button type="button" class="emoji-tab" data-tab="travel" title="Travel & Places">🚗</button>
+                                    <button type="button" class="emoji-tab" data-tab="objects" title="Objects">💡</button>
+                                    <button type="button" class="emoji-tab" data-tab="symbols" title="Symbols">❤️</button>
+                                </div>
+
+                                <!--
+                                    Emoji Grid — populated dynamically by JavaScript from a
+                                    full emoji data set (grouped by category, like a phone
+                                    keyboard). Each button will look like:
+                                    <button type="button" class="emoji-option" data-emoji="🍕">🍕</button>
+
+                                    Clicking an emoji-option sets #selected-emoji-value,
+                                    updates #selected-emoji-preview, and closes the popover.
+                                    "None" clears the selection so the category can be added
+                                    without any emoji.
+                                -->
+                                <div id="emoji-grid" class="emoji-grid">
+                                    <!-- JS renders emoji buttons here based on active tab / search -->
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <button id="add-category">+ Add Category</button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Budget Settings (moved out here so it's not tucked away) -->
+        <section class="budget-settings-section">
+
+            <h2>Budget & Safe Spend</h2>
+
+            <div class="budget-settings-grid">
+
+                <div class="form-group">
+                    <label for="monthly-budget">Monthly Budget</label>
+                    <input type="number" id="monthly-budget" placeholder="e.g. 60000" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="low-balance-threshold">Low Balance Warning Below</label>
+                    <input type="number" id="low-balance-threshold" placeholder="e.g. 1000" min="0" value="1000">
+                </div>
+
+                <div class="form-group">
+                    <label for="daily-safe-spend-override">
+                        Daily Safe-Spend Limit
+                        <span class="label-hint">(optional — leave blank to auto-calculate)</span>
+                    </label>
+                    <input type="number" id="daily-safe-spend-override" placeholder="e.g. 500" min="0">
+                </div>
+
+            </div>
+
+            <button id="save-budget">Save Budget Settings</button>
+
+        </section>
+
+
+        <!-- Transaction History (grouped by category, spending shown inline) -->
+        <section class="transaction-history">
+
+            <div class="history-header">
+
+                <h2>Transaction Log</h2>
+
+                <button id="clear-all">
+                    Clear All
+                </button>
+
+            </div>
+
+
+            <!-- Search, Filter, Sort Controls -->
+            <div class="history-controls">
+
+                <input type="text" id="search-transactions" placeholder="Search">
+
+                <select id="filter-type">
+                    <option value="all">All</option>
+                    <option value="pocket-money">Pocket Money</option>
+                    <option value="expense">Expense</option>
+                </select>
+
+                <select id="filter-category">
+                    <option value="all">All Categories</option>
+                    <option value="grocery">🛒 Grocery</option>
+                    <option value="lunch">🍔 Lunch</option>
+                    <option value="dinner">🍽️ Dinner</option>
+                    <option value="laundry">🧺 Laundry</option>
+                    <option value="petrol">⛽ Petrol</option>
+                    <option value="hostel-rent">🏠 Hostel Rent</option>
+                    <option value="shopping">🛍️ Shopping</option>
+                    <option value="bike-repair">🔧 Bike Repair</option>
+                    <option value="gym">💪 Gym</option>
+                    <option value="tea">☕ Tea</option>
+                    <option value="printout">🖨️ Printout</option>
+                    <option value="rickshaw">🛺 Rickshaw</option>
+                </select>
+
+                <select id="sort-transactions">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="highest">Highest Amount</option>
+                    <option value="lowest">Lowest Amount</option>
+                </select>
+
+            </div>
+
+
+            <!--
+                Each category groups its own transactions directly,
+                with the running total shown next to the category name.
+                Example:
+                  🍔 Lunch — Rs. 1,500
+                    20 Sep   Rs. 500
+                    18 Sep   Rs. 500
+                    15 Sep   Rs. 500
+            -->
+            <div id="transaction-log" class="transaction-log">
+
+                <!-- JavaScript will render one block per category, e.g.: -->
+                <!--
+                <div class="category-block">
+                    <div class="category-block-header">
+                        <span class="category-icon">🍔</span>
+                        <span class="category-name">Lunch</span>
+                        <span class="category-total">Rs. 1,500</span>
+                    </div>
+                    <div class="category-entries">
+                        <div class="entry-row">
+                            <span class="entry-date">20 Sep</span>
+                            <span class="entry-description">Lunch at cafe</span>
+                            <span class="entry-amount">-500</span>
+                            <button class="delete-entry-btn" data-id="TRANSACTION_ID">Delete</button>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- Undo Toast (shown for a few seconds after deleting a transaction) -->
+    <div id="undo-toast" class="undo-toast hidden">
+        <span id="undo-toast-message">Transaction deleted.</span>
+        <button id="undo-delete-btn">Undo</button>
+    </div>
+
+
+    <!-- JavaScript -->
+    <script src="emoji-data.js"></script>
+    <script src="script.js"></script>
+
+</body>
+
+</html>

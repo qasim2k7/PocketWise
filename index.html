@@ -99,20 +99,20 @@
                 <!-- Quick-Add Buttons -->
                 <div class="quick-add-buttons">
 
-                    <button type="button" class="quick-add-btn" data-category="lunch" data-description="Lunch" data-amount="500">
-                        🍔 Lunch
+                    <button type="button" id="qa-btn-1" class="quick-add-btn" data-category="lunch" data-description="Lunch" data-amount="500">
+                        <span class="qa-emoji">🍔</span> <span class="qa-label">Lunch</span>
                     </button>
 
-                    <button type="button" class="quick-add-btn" data-category="tea" data-description="Tea" data-amount="50">
-                        ☕ Tea
+                    <button type="button" id="qa-btn-2" class="quick-add-btn" data-category="tea" data-description="Tea" data-amount="50">
+                        <span class="qa-emoji">☕</span> <span class="qa-label">Tea</span>
                     </button>
 
-                    <button type="button" class="quick-add-btn" data-category="printout" data-description="Printout" data-amount="20">
-                        🖨️ Printout
+                    <button type="button" id="qa-btn-3" class="quick-add-btn" data-category="printout" data-description="Printout" data-amount="20">
+                        <span class="qa-emoji">🖨️</span> <span class="qa-label">Printout</span>
                     </button>
 
-                    <button type="button" class="quick-add-btn" data-category="rickshaw" data-description="Rickshaw" data-amount="100">
-                        🛺 Rickshaw
+                    <button type="button" id="qa-btn-4" class="quick-add-btn" data-category="rickshaw" data-description="Rickshaw" data-amount="100">
+                        <span class="qa-emoji">🛺</span> <span class="qa-label">Rickshaw</span>
                     </button>
 
                     <button type="button" id="edit-quick-add" class="quick-add-btn edit-quick-add-btn">
@@ -417,6 +417,68 @@
     <div id="undo-toast" class="undo-toast hidden">
         <span id="undo-toast-message">Transaction deleted.</span>
         <button id="undo-delete-btn">Undo</button>
+    </div>
+
+
+    <!-- Reusable Confirmation Modal (used for Clear All, delete
+         transaction, delete category — replaces the plain browser
+         confirm() popup with one that matches the app's theme) -->
+    <div id="confirm-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+
+            <h3 id="confirm-modal-title" class="modal-title">Are you sure?</h3>
+            <p id="confirm-modal-message" class="modal-message">This action cannot be undone.</p>
+
+            <div class="modal-actions">
+                <button type="button" id="confirm-modal-cancel" class="modal-btn modal-btn-cancel">Cancel</button>
+                <button type="button" id="confirm-modal-confirm" class="modal-btn modal-btn-danger">Yes, Continue</button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Edit Quick-Add Modal -->
+    <div id="quick-add-edit-overlay" class="modal-overlay hidden">
+        <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="quick-add-edit-title">
+
+            <h3 id="quick-add-edit-title" class="modal-title">Edit Quick-Add Buttons</h3>
+            <p class="modal-message">Customize the description and amount for each shortcut.</p>
+
+            <div class="quick-add-edit-rows">
+
+                <div class="quick-add-edit-row">
+                    <span class="qa-edit-emoji">🍔</span>
+                    <input type="text" id="qa-edit-desc-1" placeholder="Description" maxlength="24">
+                    <input type="number" id="qa-edit-amount-1" placeholder="Amount" min="1">
+                </div>
+
+                <div class="quick-add-edit-row">
+                    <span class="qa-edit-emoji">☕</span>
+                    <input type="text" id="qa-edit-desc-2" placeholder="Description" maxlength="24">
+                    <input type="number" id="qa-edit-amount-2" placeholder="Amount" min="1">
+                </div>
+
+                <div class="quick-add-edit-row">
+                    <span class="qa-edit-emoji">🖨️</span>
+                    <input type="text" id="qa-edit-desc-3" placeholder="Description" maxlength="24">
+                    <input type="number" id="qa-edit-amount-3" placeholder="Amount" min="1">
+                </div>
+
+                <div class="quick-add-edit-row">
+                    <span class="qa-edit-emoji">🛺</span>
+                    <input type="text" id="qa-edit-desc-4" placeholder="Description" maxlength="24">
+                    <input type="number" id="qa-edit-amount-4" placeholder="Amount" min="1">
+                </div>
+
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="quick-add-edit-cancel" class="modal-btn modal-btn-cancel">Cancel</button>
+                <button type="button" id="quick-add-edit-save" class="modal-btn modal-btn-primary">Save</button>
+            </div>
+
+        </div>
     </div>
 
 

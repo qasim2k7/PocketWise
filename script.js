@@ -42,7 +42,8 @@
     const STORAGE_KEYS = {
         transactions: "pocketwise_transactions",
         categories: "pocketwise_categories",
-        budget: "pocketwise_budget"
+        budget: "pocketwise_budget",
+        quickAdd: "pocketwise_quickadd"
     };
 
     const LIMITS = {
@@ -294,6 +295,7 @@
         dateInput: document.getElementById("date"),
 
         quickAddButtons: document.querySelectorAll(".quick-add-btn[data-category]"),
+        editQuickAddBtn: document.getElementById("edit-quick-add"),
 
         categoryList: document.getElementById("category-list"),
         newCategoryInput: document.getElementById("new-category"),
@@ -321,7 +323,17 @@
 
         undoToast: document.getElementById("undo-toast"),
         undoToastMessage: document.getElementById("undo-toast-message"),
-        undoDeleteBtn: document.getElementById("undo-delete-btn")
+        undoDeleteBtn: document.getElementById("undo-delete-btn"),
+
+        confirmOverlay: document.getElementById("confirm-modal-overlay"),
+        confirmTitle: document.getElementById("confirm-modal-title"),
+        confirmMessage: document.getElementById("confirm-modal-message"),
+        confirmCancelBtn: document.getElementById("confirm-modal-cancel"),
+        confirmConfirmBtn: document.getElementById("confirm-modal-confirm"),
+
+        quickAddEditOverlay: document.getElementById("quick-add-edit-overlay"),
+        quickAddEditCancelBtn: document.getElementById("quick-add-edit-cancel"),
+        quickAddEditSaveBtn: document.getElementById("quick-add-edit-save")
     };
 
 
@@ -424,7 +436,7 @@
 
         if (el.spendingCircle) {
             el.spendingCircle.style.background =
-                `conic-gradient(var(--color-red) 0% ${percentSpent}%, var(--color-blue) ${percentSpent}% 100%)`;
+                `conic-gradient(var(--color-danger) 0% ${percentSpent}%, var(--color-lavender) ${percentSpent}% 100%)`;
         }
         if (el.circlePercentage) {
             el.circlePercentage.textContent = Math.round(percentSaving) + "%";
@@ -713,14 +725,13 @@
         const index = transactions.findIndex(t => t.id === id);
         if (index === -1) return;
 
-        const confirmed = window.confirm("Delete this transaction?");
-        if (!confirmed) return;
-
-        lastDeleted = transactions[index];
-        transactions.splice(index, 1);
-        saveToStorage(STORAGE_KEYS.transactions, transactions);
-        renderAll();
-        showUndoToast("Transaction deleted.");
+        showConfirmModal("Delete this transaction?", () => {
+            lastDeleted = transactions[index];
+            transactions.splice(index, 1);
+            saveToStorage(STORAGE_KEYS.transactions, transactions);
+            renderAll();
+            showUndoToast("Transaction deleted.");
+        });
     }
 
     function undoLastDelete() {
@@ -755,14 +766,15 @@
 
     function handleClearAll() {
         if (transactions.length === 0) return;
-        const confirmed = window.confirm(
-            "This will permanently delete ALL transactions. This cannot be undone. Continue?"
-        );
-        if (!confirmed) return;
 
-        transactions = [];
-        saveToStorage(STORAGE_KEYS.transactions, transactions);
-        renderAll();
+        showConfirmModal(
+            "This will permanently delete ALL transactions. This cannot be undone. Continue?",
+            () => {
+                transactions = [];
+                saveToStorage(STORAGE_KEYS.transactions, transactions);
+                renderAll();
+            }
+        );
     }
 
     function handleAddCategory() {
@@ -817,18 +829,17 @@
             ? "This category has existing transactions, which will be labeled \"Other\" once it's deleted. Continue?"
             : "Delete this category?";
 
-        const confirmed = window.confirm(message);
-        if (!confirmed) return;
+        showConfirmModal(message, () => {
+            categories = categories.filter(c => c.id !== categoryId);
 
-        categories = categories.filter(c => c.id !== categoryId);
+            // Guard: never allow zero categories, restore defaults if so
+            if (categories.length === 0) {
+                categories = DEFAULT_CATEGORIES.slice();
+            }
 
-        // Guard: never allow zero categories, restore defaults if so
-        if (categories.length === 0) {
-            categories = DEFAULT_CATEGORIES.slice();
-        }
-
-        saveToStorage(STORAGE_KEYS.categories, categories);
-        renderAll();
+            saveToStorage(STORAGE_KEYS.categories, categories);
+            renderAll();
+        });
     }
 
     function handleSaveBudget() {
@@ -887,6 +898,141 @@
             description: description || "Quick add",
             date: today
         });
+    }
+
+
+    /* =====================================================
+       CONFIRMATION MODAL
+       Replaces window.confirm() with a themed in-app dialog.
+       Usage: showConfirmModal("message", onConfirmCallback)
+       The callback only runs if the user clicks "Yes, Continue".
+       ===================================================== */
+
+    let pendingConfirmAction = null;
+
+    function showConfirmModal(message, onConfirm) {
+        if (!el.confirmOverlay) {
+            // Fallback for safety if the modal markup is ever missing —
+            // degrade to the native confirm rather than silently do nothing.
+            if (window.confirm(message)) onConfirm();
+            return;
+        }
+        if (el.confirmMessage) el.confirmMessage.textContent = message;
+        pendingConfirmAction = onConfirm;
+        el.confirmOverlay.classList.remove("hidden");
+    }
+
+    function closeConfirmModal() {
+        if (!el.confirmOverlay) return;
+        el.confirmOverlay.classList.add("hidden");
+        pendingConfirmAction = null;
+    }
+
+    function handleConfirmModalConfirm() {
+        const action = pendingConfirmAction;
+        closeConfirmModal();
+        if (typeof action === "function") action();
+    }
+
+
+    /* =====================================================
+       QUICK-ADD EDITOR
+       Lets the user customize the description + amount of each
+       of the 4 quick-add buttons. Category and emoji stay fixed
+       per slot (keeps the UI simple); only the two fields that
+       matter day-to-day (what it's called, how much) are editable.
+       Persisted to localStorage so edits survive a reload.
+       ===================================================== */
+
+    const QUICK_ADD_SLOT_IDS = ["qa-btn-1", "qa-btn-2", "qa-btn-3", "qa-btn-4"];
+
+    function isValidQuickAddConfig(cfg) {
+        return (
+            cfg && typeof cfg === "object" &&
+            QUICK_ADD_SLOT_IDS.every(id => {
+                const entry = cfg[id];
+                return entry && typeof entry === "object" &&
+                    typeof entry.description === "string" &&
+                    typeof entry.amount === "number" &&
+                    Number.isFinite(entry.amount) &&
+                    entry.amount >= LIMITS.minAmount &&
+                    entry.amount <= LIMITS.maxAmount;
+            })
+        );
+    }
+
+    let quickAddConfig = loadFromStorage(STORAGE_KEYS.quickAdd, isValidQuickAddConfig, null);
+
+    /** Apply the current quickAddConfig (or the button's original
+     *  HTML defaults, if no override is saved yet) onto the actual
+     *  DOM buttons — updates both the data-* attributes used by
+     *  handleQuickAdd() and the visible label text. */
+    function applyQuickAddConfig() {
+        QUICK_ADD_SLOT_IDS.forEach(id => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+
+            const override = quickAddConfig && quickAddConfig[id];
+            const description = override ? override.description : btn.dataset.description;
+            const amount = override ? override.amount : btn.dataset.amount;
+
+            btn.dataset.description = description;
+            btn.dataset.amount = String(amount);
+
+            const labelSpan = btn.querySelector(".qa-label");
+            if (labelSpan) labelSpan.textContent = description;
+        });
+    }
+
+    function openQuickAddEditor() {
+        if (!el.quickAddEditOverlay) return;
+
+        QUICK_ADD_SLOT_IDS.forEach((id, index) => {
+            const btn = document.getElementById(id);
+            const descInput = document.getElementById("qa-edit-desc-" + (index + 1));
+            const amountInput = document.getElementById("qa-edit-amount-" + (index + 1));
+            if (!btn || !descInput || !amountInput) return;
+
+            descInput.value = btn.dataset.description || "";
+            amountInput.value = btn.dataset.amount || "";
+        });
+
+        el.quickAddEditOverlay.classList.remove("hidden");
+    }
+
+    function closeQuickAddEditor() {
+        if (!el.quickAddEditOverlay) return;
+        el.quickAddEditOverlay.classList.add("hidden");
+    }
+
+    function saveQuickAddEditor() {
+        const newConfig = {};
+
+        for (let i = 0; i < QUICK_ADD_SLOT_IDS.length; i++) {
+            const id = QUICK_ADD_SLOT_IDS[i];
+            const descInput = document.getElementById("qa-edit-desc-" + (i + 1));
+            const amountInput = document.getElementById("qa-edit-amount-" + (i + 1));
+            if (!descInput || !amountInput) continue;
+
+            const safeDescription = sanitizeText(descInput.value, LIMITS.descriptionMaxLength);
+            const safeAmount = parseSafeAmount(amountInput.value);
+
+            if (!safeDescription) {
+                alert("Please fill in a description for every quick-add button.");
+                return;
+            }
+            if (safeAmount === null) {
+                alert("Please enter a valid amount (" + LIMITS.minAmount + "–" + LIMITS.maxAmount + ") for every quick-add button.");
+                return;
+            }
+
+            newConfig[id] = { description: safeDescription, amount: safeAmount };
+        }
+
+        quickAddConfig = newConfig;
+        saveToStorage(STORAGE_KEYS.quickAdd, quickAddConfig);
+        applyQuickAddConfig();
+        closeQuickAddEditor();
     }
 
 
@@ -964,6 +1110,36 @@
         if (el.pagePrevBtn) el.pagePrevBtn.addEventListener("click", goToPrevPage);
         if (el.pageNextBtn) el.pageNextBtn.addEventListener("click", goToNextPage);
         if (el.pageLastBtn) el.pageLastBtn.addEventListener("click", goToLastPage);
+
+        // Edit Quick-Add
+        if (el.editQuickAddBtn) {
+            el.editQuickAddBtn.addEventListener("click", openQuickAddEditor);
+        }
+        if (el.quickAddEditCancelBtn) {
+            el.quickAddEditCancelBtn.addEventListener("click", closeQuickAddEditor);
+        }
+        if (el.quickAddEditSaveBtn) {
+            el.quickAddEditSaveBtn.addEventListener("click", saveQuickAddEditor);
+        }
+        // Click on the dark overlay itself (outside the box) also cancels
+        if (el.quickAddEditOverlay) {
+            el.quickAddEditOverlay.addEventListener("click", (e) => {
+                if (e.target === el.quickAddEditOverlay) closeQuickAddEditor();
+            });
+        }
+
+        // Confirmation modal
+        if (el.confirmCancelBtn) {
+            el.confirmCancelBtn.addEventListener("click", closeConfirmModal);
+        }
+        if (el.confirmConfirmBtn) {
+            el.confirmConfirmBtn.addEventListener("click", handleConfirmModalConfirm);
+        }
+        if (el.confirmOverlay) {
+            el.confirmOverlay.addEventListener("click", (e) => {
+                if (e.target === el.confirmOverlay) closeConfirmModal();
+            });
+        }
     }
 
 
@@ -981,6 +1157,7 @@
             saveToStorage(STORAGE_KEYS.budget, budget);
         }
 
+        applyQuickAddConfig();
         initFormDefaults();
         bindEvents();
         renderAll();

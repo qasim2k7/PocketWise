@@ -1,28 +1,45 @@
 /* =========================================================
    PocketWise — style.css
-   Color theme: Red (spending/alerts), Blue (saving/primary),
-   White (background/surfaces)
+   Dark theme.
+   Palette: #0C134F (deep navy — card surfaces), #5C469C
+   (purple — primary accent/buttons), #D4ADFC (light lavender
+   — highlights/headings/saving), #191919 (near-black — page
+   background). Red is kept ONLY as a semantic danger/expense
+   color (delete actions, low balance, spending) since a
+   money app needs a clear "this is bad/spending" signal
+   distinct from the primary purple — everything else uses
+   the four requested colors.
    ========================================================= */
 
 :root {
-    --color-red: #e63946;
-    --color-red-dark: #c1121f;
-    --color-red-light: #fdeaec;
+    --color-danger: #ff6b6b;
+    --color-danger-dark: #e04848;
+    --color-danger-light: rgba(255, 107, 107, 0.12);
 
-    --color-blue: #1d4ed8;
-    --color-blue-dark: #1e3a8a;
-    --color-blue-light: #e8f0fe;
+    /* Kept as --color-red* aliases too, since many rules below
+       reference these names for expense/delete/warning states. */
+    --color-red: var(--color-danger);
+    --color-red-dark: var(--color-danger-dark);
+    --color-red-light: var(--color-danger-light);
 
-    --color-white: #ffffff;
-    --color-bg: #f7f8fb;
-    --color-border: #e2e5ec;
-    --color-text: #1f2430;
-    --color-text-muted: #6b7280;
+    --color-blue: #5C469C;        /* primary accent (was blue, now purple) */
+    --color-blue-dark: #47367a;   /* darker purple, for hover states */
+    --color-blue-light: rgba(212, 173, 252, 0.14); /* soft lavender tint */
+
+    --color-lavender: #D4ADFC;    /* highlight / saving / headings */
+    --color-navy: #0C134F;        /* card surfaces */
+
+    --color-white: #ffffff;       /* kept for text-on-accent-button only */
+    --color-surface: #0C134F;     /* card/input backgrounds */
+    --color-bg: #191919;          /* page background */
+    --color-border: rgba(212, 173, 252, 0.16);
+    --color-text: #EDEAF7;        /* light text for dark backgrounds */
+    --color-text-muted: #A79CC7;  /* dimmed lavender-grey for secondary text */
 
     --radius: 12px;
     --radius-sm: 8px;
-    --shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.5);
 
     --transition: all 0.2s ease;
 }
@@ -106,7 +123,7 @@ body {
 }
 
 .summary-card {
-    background: var(--color-white);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     padding: 18px;
@@ -133,7 +150,7 @@ body {
 .summary-card p {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--color-blue-dark);
+    color: var(--color-lavender);
 }
 
 /* State-based accents for balance card */
@@ -142,7 +159,7 @@ body {
 }
 
 .summary-card.low-balance p {
-    color: var(--color-red-dark);
+    color: var(--color-danger);
 }
 
 /* Total spent leans red since it's an outflow */
@@ -151,7 +168,7 @@ body {
 }
 
 .summary-card:nth-child(2) p {
-    color: var(--color-red-dark);
+    color: var(--color-danger);
 }
 
 
@@ -160,7 +177,7 @@ body {
    ========================================================= */
 
 .spending-circle-section {
-    background: var(--color-white);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     padding: 24px;
@@ -197,18 +214,18 @@ body {
        1) plain hex color (works even without CSS variable support)
        2) CSS variable solid color (works if variables are supported)
        3) conic-gradient (works on modern browsers, final result) */
-    background: #1d4ed8;
-    background: var(--color-blue);
-    background: conic-gradient(var(--color-red) 0% 0%, var(--color-blue) 0% 100%);
+    background: #D4ADFC;
+    background: var(--color-lavender);
+    background: conic-gradient(var(--color-danger) 0% 0%, var(--color-lavender) 0% 100%);
     transition: background 0.6s ease;
-    box-shadow: inset 0 0 0 10px var(--color-white), var(--shadow);
+    box-shadow: inset 0 0 0 10px var(--color-surface), var(--shadow);
 }
 
 .circle-inner {
     width: 150px;
     height: 150px;
     border-radius: 50%;
-    background: var(--color-white);
+    background: var(--color-surface);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -219,7 +236,7 @@ body {
 #circle-percentage {
     font-size: 1.6rem;
     font-weight: 700;
-    color: var(--color-blue-dark);
+    color: var(--color-lavender);
 }
 
 #circle-label {
@@ -269,7 +286,7 @@ body {
 
 .transaction-form,
 .budget-settings {
-    background: var(--color-white);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     padding: 20px;
@@ -300,7 +317,7 @@ body {
 
 .quick-add-btn {
     background: var(--color-blue-light);
-    color: var(--color-blue-dark);
+    color: var(--color-lavender);
     border: 1px solid var(--color-blue);
     border-radius: 999px;
     padding: 8px 14px;
@@ -316,7 +333,7 @@ body {
 }
 
 .edit-quick-add-btn {
-    background: var(--color-white);
+    background: var(--color-surface);
     color: var(--color-text-muted);
     border: 1px dashed var(--color-border);
 }
@@ -324,6 +341,133 @@ body {
 .edit-quick-add-btn:hover {
     background: var(--color-bg);
     color: var(--color-text);
+}
+
+.qa-emoji,
+.qa-label {
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   Modals (Confirm dialog + Edit Quick-Add dialog)
+   ========================================================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 16px;
+}
+
+.modal-box {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: var(--shadow-hover);
+}
+
+.modal-box-wide {
+    max-width: 420px;
+}
+
+.modal-title {
+    font-size: 1.1rem;
+    color: var(--color-lavender);
+    margin-bottom: 8px;
+}
+
+.modal-message {
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-btn {
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.88rem;
+    border: 1px solid transparent;
+    transition: var(--transition);
+}
+
+.modal-btn-cancel {
+    background: none;
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+}
+
+.modal-btn-cancel:hover {
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+.modal-btn-danger {
+    background: var(--color-danger);
+    color: var(--color-white);
+}
+
+.modal-btn-danger:hover {
+    background: var(--color-danger-dark);
+}
+
+.modal-btn-primary {
+    background: var(--color-lavender);
+    color: #1a1030;
+}
+
+.modal-btn-primary:hover {
+    background: #c295fb;
+}
+
+/* Edit Quick-Add rows */
+.quick-add-edit-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.quick-add-edit-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 90px;
+    align-items: center;
+    gap: 8px;
+}
+
+.qa-edit-emoji {
+    font-size: 1.3rem;
+    text-align: center;
+}
+
+.quick-add-edit-row input {
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    width: 100%;
+}
+
+.quick-add-edit-row input:focus {
+    outline: none;
+    border-color: var(--color-blue);
 }
 
 
@@ -351,7 +495,7 @@ body {
     border-radius: var(--radius-sm);
     font-size: 0.95rem;
     color: var(--color-text);
-    background: var(--color-white);
+    background: var(--color-surface);
     transition: var(--transition);
 }
 
@@ -359,7 +503,28 @@ body {
 .form-group select:focus {
     outline: none;
     border-color: var(--color-blue);
-    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
+    box-shadow: 0 0 0 3px rgba(92, 70, 156, 0.35);
+}
+
+/* Date input's native calendar icon renders solid black by default,
+   which is invisible against our dark surfaces. Invert it to a light
+   lavender-white so it's clearly visible on the dark input field. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(90%) brightness(1.1);
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px;
+    transition: var(--transition);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    background: var(--color-blue-light);
+    filter: invert(90%) brightness(1.1) drop-shadow(0 0 2px var(--color-lavender));
+}
+
+/* Firefox uses a different pseudo-element for the same button */
+input[type="date"]::-moz-calendar-picker-indicator {
+    filter: invert(90%) brightness(1.1);
 }
 
 /* Buttons */
@@ -445,18 +610,19 @@ button {
 }
 
 #add-category {
-    background: var(--color-white);
-    border: 1px solid var(--color-blue);
-    color: var(--color-blue);
+    background: var(--color-lavender);
+    border: 1px solid var(--color-lavender);
+    color: #1a1030;
     padding: 8px 14px;
     border-radius: var(--radius-sm);
-    font-weight: 600;
+    font-weight: 700;
     white-space: nowrap;
+    transition: var(--transition);
 }
 
 #add-category:hover {
-    background: var(--color-blue);
-    color: var(--color-white);
+    background: #c295fb;
+    border-color: #c295fb;
 }
 
 
@@ -473,7 +639,7 @@ button {
     height: 38px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    background: var(--color-white);
+    background: var(--color-surface);
     font-size: 1.1rem;
     display: flex;
     align-items: center;
@@ -492,7 +658,7 @@ button {
     left: 0;
     width: 280px;
     max-width: 80vw;
-    background: var(--color-white);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-hover);
@@ -521,7 +687,7 @@ button {
 }
 
 .emoji-clear-btn {
-    background: var(--color-white);
+    background: var(--color-surface);
     border: 1px solid var(--color-red);
     color: var(--color-red);
     font-size: 0.75rem;
@@ -558,7 +724,7 @@ button {
 
 .emoji-tab.active {
     border-bottom: 2px solid var(--color-blue);
-    background: var(--color-white);
+    background: var(--color-surface);
 }
 
 .emoji-grid {
@@ -602,7 +768,7 @@ button {
    ========================================================= */
 
 .budget-settings-section {
-    background: var(--color-white);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     padding: 22px;
@@ -651,7 +817,7 @@ button {
    ========================================================= */
 
 .transaction-history {
-    background: var(--color-white);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     padding: 20px;
@@ -670,7 +836,7 @@ button {
 }
 
 #clear-all {
-    background: var(--color-white);
+    background: var(--color-surface);
     border: 1px solid var(--color-red);
     color: var(--color-red);
     padding: 8px 16px;
@@ -705,7 +871,7 @@ button {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
-    background: var(--color-white);
+    background: var(--color-surface);
     color: var(--color-text);
 }
 
@@ -772,11 +938,11 @@ button {
 }
 
 .entry-amount.income {
-    color: var(--color-blue-dark);
+    color: var(--color-lavender);
 }
 
 .entry-amount.expense {
-    color: var(--color-red-dark);
+    color: var(--color-danger);
 }
 
 .delete-entry-btn {
@@ -824,8 +990,8 @@ button {
     height: 36px;
     border-radius: 50%;
     border: 1px solid var(--color-border);
-    background: var(--color-white);
-    color: var(--color-blue-dark);
+    background: var(--color-surface);
+    color: var(--color-lavender);
     font-size: 1rem;
     display: flex;
     align-items: center;
